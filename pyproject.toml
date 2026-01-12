@@ -10,7 +10,6 @@ dependencies = [
 
 [project.scripts]
 kicad-laser-tracer = "kicad_laser_tracer.cli:main"
-kicad-laser-tracer-setup = "kicad_laser_tracer.setup:main"
 
 [build-system]
 requires = ["hatchling"]

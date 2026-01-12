@@ -3,9 +3,13 @@
 Core functionality for generating isolation routing SVGs using KiCad's native boolean operations.
 """
 
-# kigadgets must be imported first - it sets up the path to pcbnew
-import kigadgets  # noqa: F401
-import pcbnew
+# Try to import pcbnew directly (works if running with KiCad's Python)
+# Fall back to kigadgets to set up the path if needed
+try:
+    import pcbnew
+except ImportError:
+    import kigadgets  # noqa: F401 - sets up path to pcbnew
+    import pcbnew
 import xml.etree.ElementTree as ET
 from pathlib import Path
 

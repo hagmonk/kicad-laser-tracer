@@ -12,47 +12,40 @@ Generate isolation routing SVGs from KiCad PCB files for laser cutting/etching.
 ## Requirements
 
 - KiCad 5.0 - 9.0 installed
-- [uv](https://docs.astral.sh/uv/) package manager (recommended)
+- [uv](https://docs.astral.sh/uv/) package manager
 
-## Installation
+## Quick Start
 
-### Quick Start
+No setup required! The tool auto-detects your KiCad installation:
 
 ```bash
+# Run directly with uvx (no installation needed)
+uvx --from git+https://github.com/yourusername/kicad-laser-tracer \
+    kicad-laser-tracer your_board.kicad_pcb -o output
+
+# Or install locally
+git clone https://github.com/yourusername/kicad-laser-tracer
 cd kicad-laser-tracer
-
-# Create a temporary venv and install
-uv venv
-uv pip install -e .
-
-# Run setup to discover KiCad and get instructions
-uv run kicad-laser-tracer-setup
+uv venv && uv pip install -e .
+uv run kicad-laser-tracer your_board.kicad_pcb -o output
 ```
 
-The setup command will detect your KiCad installation and tell you exactly what commands to run.
-
-### What the Setup Does
-
-This tool uses KiCad's `pcbnew` Python module, which is a compiled C extension. It must run with KiCad's bundled Python interpreter. The setup command:
-
-1. Uses `kigadgets` (included as a dependency) to auto-discover your KiCad installation
-2. Tells you the correct `uv venv --python` command to create a compatible environment
-3. Configures the pcbnew module path
+The CLI automatically detects if it's running with the wrong Python and re-executes itself with KiCad's bundled Python.
 
 ## Usage
 
 ```bash
 # Generate isolation SVGs for a PCB
-uv run kicad-laser-tracer "your_pcb.kicad_pcb" -o output_dir
+kicad-laser-tracer "your_pcb.kicad_pcb" -o output_dir
 
 # Generate for specific side (front, back, or both)
-uv run kicad-laser-tracer "your_pcb.kicad_pcb" -s front -o output_dir
+kicad-laser-tracer "your_pcb.kicad_pcb" -s front -o output_dir
 
 # Generate all outputs (isolation, drill holes, solder mask, edge cuts)
-uv run kicad-laser-tracer "your_pcb.kicad_pcb" --all -o output_dir
+kicad-laser-tracer "your_pcb.kicad_pcb" --all -o output_dir
 
 # Generate multi-color SVG for XCS import
-uv run kicad-laser-tracer "your_pcb.kicad_pcb" --multi -o output_dir
+kicad-laser-tracer "your_pcb.kicad_pcb" --multi -o output_dir
 ```
 
 ## Output
@@ -67,15 +60,28 @@ The tool generates:
 
 All isolation SVGs contain filled paths representing areas where copper should be removed.
 
+## How It Works
+
+This tool uses KiCad's `pcbnew` Python module, which is bundled with KiCad. When you run the CLI:
+
+1. It checks if it can access `pcbnew` with the current Python
+2. If not, it uses `kigadgets` to discover your KiCad installation
+3. It re-executes itself with KiCad's Python automatically
+
+This means you can run it with any Python installation - it will find and use KiCad's Python transparently.
+
 ## Troubleshooting
 
-### "Library not loaded" or shared object errors
+### "Could not find KiCad's Python interpreter"
 
-Run `uv run kicad-laser-tracer-setup` - it will detect the problem and tell you how to fix it.
+Make sure KiCad is installed in a standard location:
+- **macOS**: `/Applications/KiCad/KiCad.app`
+- **Linux**: `/usr` or `/usr/local`
+- **Windows**: `C:\Program Files\KiCad`
 
-### "No module named pcbnew"
+### Debug output from wxWidgets
 
-Run `uv run python -m kigadgets` to configure the pcbnew path discovery.
+The wx "Debug: Adding duplicate image handler" messages are harmless warnings from KiCad's libraries when running outside the GUI. They don't affect the output.
 
 ## Note on KiCad 10+
 
