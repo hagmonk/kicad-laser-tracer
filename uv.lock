@@ -6,3 +6,18 @@ requires-python = ">=3.9"
 name = "kicad-laser-tracer"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "kigadgets" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "kigadgets", specifier = ">=0.5.0" }]
+
+[[package]]
+name = "kigadgets"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/6b/f5cda8a3b12e7eaa88ce89acb3540dbeba389ccfee37311ab098f534eeda/kigadgets-0.5.1.tar.gz", hash = "sha256:583f38a44a358ecd4605168ede08dbb399ee1551223957e1e317e3bd4aba194f", size = 43204, upload-time = "2025-01-13T18:25:16.741Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/95/584616f5c6e6a30b2451c2c774fa19bacfc0f1cf5ab6892ec71f0605a202/kigadgets-0.5.1-py3-none-any.whl", hash = "sha256:302011a21f2792ac0bd059d6ad610326d7c6eedcfc794f6180a56d1709667ce9", size = 41162, upload-time = "2025-01-13T18:25:14.319Z" },
+]

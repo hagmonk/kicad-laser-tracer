@@ -4,10 +4,13 @@ version = "0.1.0"
 description = "Generate isolation routing SVGs from KiCad PCB files for laser cutting"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "kigadgets>=0.5.0",
+]
 
 [project.scripts]
 kicad-laser-tracer = "kicad_laser_tracer.cli:main"
+kicad-laser-tracer-setup = "kicad_laser_tracer.setup:main"
 
 [build-system]
 requires = ["hatchling"]

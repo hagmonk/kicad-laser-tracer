@@ -3,9 +3,8 @@
 Core functionality for generating isolation routing SVGs using KiCad's native boolean operations.
 """
 
-import sys
-sys.path.insert(0, '/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages')
-
+# kigadgets must be imported first - it sets up the path to pcbnew
+import kigadgets  # noqa: F401
 import pcbnew
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -129,7 +128,7 @@ def generate_isolation_svg(pcb_file: Path, layer_name: str, output_dir: Path):
     
     # Get board outline
     board_outline = pcbnew.SHAPE_POLY_SET()
-    board.GetBoardPolygonOutlines(board_outline)
+    board.GetBoardPolygonOutlines(board_outline, True)
     print(f"  Board outline: {board_outline.OutlineCount()} outlines, {board_outline.TotalVertices()} vertices")
     
     # Use exact board outline without deflation
@@ -213,7 +212,7 @@ def generate_edge_cuts_svg(pcb_file: Path, output_dir: Path):
     
     # Get board outline
     board_outline = pcbnew.SHAPE_POLY_SET()
-    board.GetBoardPolygonOutlines(board_outline)
+    board.GetBoardPolygonOutlines(board_outline, True)
     
     # Convert to SVG
     svg = ET.Element("svg")
@@ -588,7 +587,7 @@ def generate_multi_color_svg(pcb_file: Path, output_dir: Path, layers: list = ["
     
     # Get board outline
     board_outline = pcbnew.SHAPE_POLY_SET()
-    board.GetBoardPolygonOutlines(board_outline)
+    board.GetBoardPolygonOutlines(board_outline, True)
     
     # 1. Add edge cuts (green stroke for contour layer)
     edge_path = ET.Element("path")
@@ -827,7 +826,7 @@ def generate_multi_color_svg_back(pcb_file: Path, output_dir: Path, layers: list
     
     # Get board outline
     board_outline = pcbnew.SHAPE_POLY_SET()
-    board.GetBoardPolygonOutlines(board_outline)
+    board.GetBoardPolygonOutlines(board_outline, True)
     
     # 1. Add edge cuts (green stroke for contour layer) - mirrored
     edge_path = ET.Element("path")
