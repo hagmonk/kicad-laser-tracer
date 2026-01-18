@@ -1,56 +1,100 @@
-# PCB Isolation Router
+# KiCad Laser Tracer
 
-Generate isolation routing SVGs from KiCad PCB files for laser cutting/etching.
+Generate SVGs from KiCad PCB files for laser cutting. A streamlined
+workflow for producing two-sided boards accurately and repeatedly.
+
+![screenshot](./example/screenshot.png)
 
 ## Features
 
-- Generates isolation paths (areas where copper needs to be removed) as filled SVG regions
+- Generates isolation paths (areas where copper needs to be removed)
+  as filled SVG regions
 - Uses KiCad's native boolean operations for accurate geometry
-- Outputs separate SVG files for each copper layer plus edge cuts
-- Compatible with laser cutters that support filled paths (e.g., XCS)
+- Outputs separate SVG files for each copper layer plus edge cuts and
+  drill points
+- Targets xTool Studio but should be useful for Lightburn or other
+  software
 
-## Requirements
+## Process Overview
+
+This project was born from my desire to make my own FR4 PCBs at home
+using the xTool F2 Ultra. Stephen Hawes did [a lot of
+work](https://github.com/sphawes/fiber-laser-pcb-fab) that inspired
+this project.
+
+My goal was to do *everything* with the laser, including contours,
+drilling, traces, and mask removal. It had to be a repeatable process
+with high reliability, otherwise one may as well order from PCBway or
+whatever.
+
+![](./example/traces.JPG)
+
+`kicad-laser-tracer` produces SVGs that enable this entire process;
+it's not just about generating paths for engraving isolation traces,
+but making sure you can position the board accurately, flip for the
+second side, and return the board to the right place for mask removal!
+
+The complete process looks like this:
+
+- *Fixturing*: mostly one-time setup so that you have a spoilboard
+  to protect the base plate of the laser, and known good coordinates
+  for positioning your SVGs. We cut a template based on known
+  fiducials, inside of which is our PCB held to the template with
+  tabs. The template can be flipped, and the PCB can be re-inserted in
+  the template if required later.
+- *Cutting and Engraving*: we can now cut the board profile, drill
+  holes, and remove copper to isolate the PCB traces. The template is
+  flipped and the process repeated for the back side if applicable.
+- *Tin-plating*: we clean the assembly with IPA to remove laser schmoo
+  and prepare the copper, then dunk in liquid tin to protect it.
+- *Solder mask*: we use a silkscreen and apply solder mask followed by
+  a UV cure for both sides.
+- *Mask removal*: we re-install the template and remove solder mask,
+  on both sides if applicable.
+- *PCB removal*: the PCB can now be broken away from the template, the
+  tabs filed, and it's ready for the SMD oven or soldering iron.
+
+## Usage
+
+### Requirements
 
 - KiCad 5.0 - 9.0 installed
 - [uv](https://docs.astral.sh/uv/) package manager
 
-## Quick Start
+The CLI automatically detects your KiCad installation and uses KiCad's bundled Python - no manual configuration needed.
 
-No setup required! The tool auto-detects your KiCad installation:
+### Running
 
-```bash
-# Run directly with uvx (no installation needed)
-uvx --from git+https://github.com/yourusername/kicad-laser-tracer \
-    kicad-laser-tracer your_board.kicad_pcb -o output
+```
+# install
+uv tool install git+https://github.com/hagmonk/kicad-laser-tracer
 
-# Or install locally
-git clone https://github.com/yourusername/kicad-laser-tracer
-cd kicad-laser-tracer
-uv venv && uv pip install -e .
-uv run kicad-laser-tracer your_board.kicad_pcb -o output
+# running against an example
+kicad-laser-tracer --multi --all example/example.kicad_pcb
 ```
 
-The CLI automatically detects if it's running with the wrong Python and re-executes itself with KiCad's bundled Python.
+This produces SVGs for the front and back. Dragging one of these SVGs
+into XCS produces a nice clean result with multiple layers.
 
-## Usage
+XCS groups objects into layers by color, and I have assigned colors to
+different KiCad layers for a consistent result. This is the order in
+which they appear in XCS, which is *not* the order in which they
+should be processed
 
-```bash
-# Generate isolation SVGs for a PCB
-kicad-laser-tracer "your_pcb.kicad_pcb" -o output_dir
+* *Cyan* - `User.Comments` - I use this layer for the board template
+  which captures the fiducials from the laser base plate.
+* *Yellow* - `Mask` - curves for mask removal
+* *Orange* - `Cu` - curves from the copper layer corresponding to
+  through holes to be drilled
+* *Black* - `Cu` - curves from the copper layer representing isolation
+  traces
+* *Green* - `Edge.Cuts` - the board outline itself, used for the final
+  cut
 
-# Generate for specific side (front, back, or both)
-kicad-laser-tracer "your_pcb.kicad_pcb" -s front -o output_dir
+Individual SVGs can be generated for different layers, although I
+stronly encourage keeping all layers together so you're able to align
+everything relative to your fiducials.
 
-# Generate all outputs (isolation, drill holes, solder mask, edge cuts)
-kicad-laser-tracer "your_pcb.kicad_pcb" --all -o output_dir
-
-# Generate multi-color SVG for XCS import
-kicad-laser-tracer "your_pcb.kicad_pcb" --multi -o output_dir
-```
-
-## Output
-
-The tool generates:
 - `isolation_F_Cu.svg` - Front copper isolation paths
 - `isolation_B_Cu.svg` - Back copper isolation paths
 - `edge_cuts.svg` - Board outline
@@ -58,31 +102,72 @@ The tool generates:
 - `solder_mask_*.svg` - Solder mask openings (with `--mask` or `--all`)
 - `multi_color_pcb.svg` - Combined multi-layer SVG (with `--multi`)
 
-All isolation SVGs contain filled paths representing areas where copper should be removed.
+## Laser setup
 
-## How It Works
+### Board selection
 
-This tool uses KiCad's `pcbnew` Python module, which is bundled with KiCad. When you run the CLI:
+Stephen dialed in settings for the F1 Ultra, but these don't apply
+cleanly to the much more powerful MOPA source in the F2 Ultra.
+Additionally he stuck to FR1. My problem with FR1 is that I wanted to
+do *everything* with the laser - including cutting and drilling. After
+close to a week of trial and error to find settings that cut FR1
+cleanly on the F2 Ultra, I gave up and switched to FR4.
 
-1. It checks if it can access `pcbnew` with the current Python
-2. If not, it uses `kigadgets` to discover your KiCad installation
-3. It re-executes itself with KiCad's Python automatically
+The difference was magical. With FR4 I am able to get relatively clean
+contours and drilled holes, with FR1 there is no way to cut or drill
+using a laser that doesn't turn the inside of the board into a
+carbonized mess. Delamination of traces has also disappeared as an
+issue.
 
-This means you can run it with any Python installation - it will find and use KiCad's Python transparently.
+Good ventillation is a must for working with FR4, but you should have
+excellent ventillation for laser cutting and engraving regardless. I
+use the xTool AP2 vented through a window.
+
+### xTool F2 Ultra settings
+
+Disclaimer! Some of these settings are a bit hit & miss, and since I
+last made a PCB, xTool Studio has been updated to include a much more
+functional way of stepping the laser focus down per each pass.
+Previously it was very broken. So I expect in the near future to
+revise these for even cleaner results!
+
+| Setting | Holes          | Isolation traces | Contour  | Mask            |
+|---------|----------------|------------------|----------|-----------------|
+| Op      | Engrave        | Engrave          | Cut      | Engrave         |
+| Laser   | MOPA IR        | MOPA IR          | MOPA IR  | MOPA IR         |
+| Power   | 60%            | 78%              | 80%      | 20%             |
+| Speed   | 5000 mm/s      | 5000 mm/s        | 200 mm/s | 2000 mm/s       |
+| Pass    | 10             | 7                | 15       | 20              |
+| Lines   | 300            | 300              | -        | 300             |
+| Mode    | Bi-directional | Uni-directional  | -        | Uni-directional |
+| Pulse   | 500 ns         | 500 ns           | 500 ns   | 60 ns           |
+| Freq    | 30 kHz         | 30 kHz           | 30 kHz   | 115 kHz         |
+| Tabs    | -              | -                | 6 x 1 mm |                 |
+
+### Spoilboard and fiducials
+
+![](./example/spoilboard.jpeg)
+
+Producing a spoilboard is left as an exercise for the reader. I cut
+some brass plate on the Carvera CNC with appropriate hole spacing for
+the xTool F2 Ultra base plate. The holes are spaced 35mm apart with an
+annoying missing hole in the middle. I use M4 studs from McMaster to
+position the spoilboard. When the PCB template is cut, you'll remove
+these studs and reinstall them through the holes in the template.
 
 ## Troubleshooting
 
 ### "Could not find KiCad's Python interpreter"
 
-Make sure KiCad is installed in a standard location:
+Ensure KiCad is installed in a standard location:
 - **macOS**: `/Applications/KiCad/KiCad.app`
 - **Linux**: `/usr` or `/usr/local`
 - **Windows**: `C:\Program Files\KiCad`
 
-### Debug output from wxWidgets
+### Debug messages from wxWidgets
 
-The wx "Debug: Adding duplicate image handler" messages are harmless warnings from KiCad's libraries when running outside the GUI. They don't affect the output.
+The "Debug: Adding duplicate image handler" messages are harmless warnings from KiCad's libraries when running outside the GUI.
 
 ## Note on KiCad 10+
 
-The SWIG-based `pcbnew` Python bindings are deprecated as of KiCad 9.0 and planned for removal in KiCad 10.0 (February 2026). Future versions of this tool may need to migrate to KiCad's new IPC API.
+The SWIG-based `pcbnew` Python bindings are deprecated as of KiCad 9.0 and will be removed in KiCad 10.0 (February 2026). Future versions may migrate to KiCad's IPC API.

@@ -174,8 +174,33 @@ def run_main():
     print("=" * 60)
 
 
+def show_help():
+    """Show help without triggering kigadgets import."""
+    parser = argparse.ArgumentParser(
+        prog="kicad-laser-tracer",
+        description="Generate isolation routing SVGs using KiCad's native boolean operations"
+    )
+    parser.add_argument("pcb_file", type=Path, help="Input KiCad PCB file")
+    parser.add_argument("-o", "--output", type=Path, default=Path("output"), help="Output directory")
+    parser.add_argument("-s", "--side", choices=["front", "back", "both"], default="both",
+                        help="Which side(s) to generate (default: both)")
+    parser.add_argument("--drill", action="store_true", help="Generate drill holes SVG")
+    parser.add_argument("--mask", action="store_true", help="Generate solder mask SVG")
+    parser.add_argument("--comments", action="store_true", help="Generate User.Comments layer SVG")
+    parser.add_argument("--all", action="store_true", help="Generate all outputs (isolation, drill, mask, edge cuts, comments)")
+    parser.add_argument("--multi", action="store_true", help="Generate single multi-color SVG for XCS import")
+    parser.print_help()
+
+
 def main():
     """Entry point that handles Python version detection and re-execution."""
+    # Handle --help early to avoid triggering kigadgets import
+    if '-h' in sys.argv or '--help' in sys.argv:
+        show_help()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)  # Use os._exit to avoid any cleanup that might trigger kigadgets
+
     # Check if we've already tried re-exec (prevent infinite loops)
     if os.environ.get('_KICAD_LASER_TRACER_REEXEC'):
         # We're in the re-exec'd process, just run
